@@ -1,0 +1,162 @@
+setwd("D:/DOC/ANOVA.PRACTICE/ANOVA.PRACTICE")
+library(plyr)
+library(tidyverse)
+library(dslabs)
+library(ggplot2)
+data("murders")
+view(murders)
+?murders  ##see background of data(2010 @ FBI)
+sort(murders$total)  #sorts from low-high(no indexes assigned)
+order(murders$total)  ##positions(index)of sorted observ's in the data
+ind<-order(murders$population)  ###helps in reordering related variables 
+rank<-rank(murders$population)  ##lowest is given a rank(1),("-" means otherwise)
+new_df<-data.frame(states=murders$state[ind],region=murders$region[ind],
+                  population=murders$population[ind],rank=rank[ind])
+print(new_df)
+rm(p1)
+##distribution of population
+p1<-hist(new_df$population,xlab="population",
+     main="population distribution(US-2010)",col="lightblue")
+
+p2<-ggplot(new_df,aes(population,fill=region))+
+  geom_density(stat = "density",position="stack")+
+  labs(xlab="Region",ylab="Population", title="Population distribution by region(US-2010)")+
+  theme_bw()+
+  theme(legend.position ="top")
+
+###now we want to see occurrence of regions in the dataset and avg population
+library(Rmisc)
+SSE<-summarySE(new_df,measurevar = "population",groupvar ="region")###N,AVG,sd,se,ci
+
+###let's define a new variable using arithmetic(murder rate)
+murder_rate<-murders$total/murders$population*100000
+murders$state[order(murder_rate)]##States and their corresponding murder rate(low-high)]
+murder_rank<-rank(murder_rate)
+##let's "order" our data in order of murder rate
+ind2<-order(murder_rate)
+###create new data frame an use the index "ind2",(u can mutate "new_data" if u like)
+df_2<-data.frame(state=murders$state[ind2],region=murders$region[ind2],
+                 population=murders$population[ind],total_murder=murders$total[ind2],
+                 murder_rate=murder_rate[ind2],murder_rank=murder_rank[ind2])
+
+####convinced by murder rate, define safe and dangerous states
+max(df_2$murder_rate)
+min(df_2$murder_rate)
+mean(df_2$murder_rate)
+  
+df_2<-df_2 %>% 
+  mutate(condition = if_else(murder_rate <= 3, "Safe","Dangerous"))
+    
+cor(df_2[3:5])##positive correlation(population & murder rate had a strong +corr)
+#lets find out with scartter_plot
+p3<-ggplot(df_2, aes(population,murder_rate)) +
+  geom_point() +
+  geom_smooth()+
+  labs(x = "Population", y = "Murder rate", 
+       title = "Relationship between population and murder rate")+
+  theme_bw()
+  
+
+p4<-ggplot(df_2,aes(region,murder_rate))+
+  geom_boxplot(aes(color=region)) +
+  labs(x="region",y="murder rate", title="murder rate across region")+
+  theme_bw()+
+  theme(legend.position ="none")
+
+
+ggplot(df_2, aes(x = region, y = murder_rate)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "Region", y = "Murder rate", title = "murder rate across regions") +
+  theme_bw() +
+  theme(legend.position = "top")
+
+
+
+##############using data.tables
+library(tidyverse)
+library(dslabs)
+data(murders)
+library(data.table)
+murders<-setDT(murders)
+head(murders)
+view(murders)
+summary(murders)
+rate<-murders$total/murders$population*10^5
+murders[,":="(rate=total/population*10^5,rank=rank(population))]
+murders
+murders[,.(states,population,rate,rank)]|>head()
+x<-data.table(a=1)
+y<-copy(x)
+y
+x[,a:=2]
+y
+y[,a:=1]
+x
+  murders[,safety:=ifelse(rate<=1,"safe",ifelse(rate<=5,"mild","abort"))]
+murders_new<-murders[,.(state,region,population,rank,rate,safety)]
+view(murders_new)#do a plot with this new data
+murders_new[order(-population)]##descending order
+
+murders_new[order(rate,safety)]
+
+##########
+data("heights")
+heights<-setDT(heights)
+static<-heights[,.(average=mean(height),standard_dev=sd(height)),by=sex]
+
+min_max_median<-function(x){qs<-quantile(x, c(0,1,0.5))
+data.frame(minimum=qs[1], maximum=qs[2], median=qs[3])
+}
+heights[,.(min_max_median(height))]
+#####################
+data(heights)
+view(heights)
+options(digits = 3)
+heights[,.(mean=mean(height))]
+ind<-heights[height>68.3]
+which(heights$height>68.3&heights$sex=="Female")
+mean(heights$sex=="Female")
+heights[order(heights$sex)]
+min(heights$height)
+which.min(heights$height)
+match(min(heights$height),heights$height)
+heights$sex[1032]
+max(heights$height)
+x<-(50:82)
+sum(!(x%in%heights$height))##x not in heights
+ht_cm<-(heights=2.54*heights$height)
+ht_cm[18]
+mean(ht_cm)
+heights<-setDT(heights)
+height2<-heights[,":="(ht_cm=ht_cm)]##mutate new column
+females<-sum(height2$sex=="Female")##num fems
+mean(height2[sex=="Female",ht_cm])##mean H of fems(cm)
+################################
+data(olive)
+view(olive)
+summary(olive)
+str(olive)
+
+  plot(olive$palmitic,olive$palmitoleic)
+hist(olive$eicosenoic)
+boxplot(olive$region=="Southern Italy", olive$palmitic)
+summary(olive$region)
+
+##########################################3
+compute_s_n<-function(n){
+  x <- 1:n 
+sum(x)
+  
+}
+
+for(i in 1:5){
+  print(i)
+}
+
+m<-25
+s_n<-vector(lenght=m)
+for(n in 1:m){
+s_n[n]<-compute_s_n(n)  
+}
+
+
